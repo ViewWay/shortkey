@@ -6,7 +6,7 @@ import UserNotifications
 final class UpdateChecker {
     static let shared = UpdateChecker()
     /// 发布仓库；仓库就绪后替换为真实地址
-    private let releasesURL = URL(string: "https://api.github.com/repos/yimiliya/shortkey/releases/latest")!
+    private let releasesURL = URL(string: "https://api.github.com/repos/ViewWay/shortkey/releases/latest")!
 
     func checkIfDue() {
         let defaults = UserDefaults.standard
