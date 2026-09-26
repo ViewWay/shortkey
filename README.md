@@ -1,5 +1,22 @@
 # ShortKey
 
+**[English](#english)** | [中文](#shortkey)
+
+类 KeyCue 的 macOS 快捷键提示工具：**长按 ⌘（或连续按两次 ⌘ 并按住）弹出当前应用的全部快捷键**，输入文字即可模糊筛选。鼠标点菜单太慢、快捷键记不住时的效率工具。
+
+<a name="english"></a>
+## English
+
+ShortKey is a KeyCue-style shortcut cheat-sheet for macOS: **press and hold ⌘ (or double-tap ⌘ and hold) to pop up every shortcut of the frontmost app**, with instant fuzzy filtering. A Rust core (`core-rust/`) powers the cross-platform roadmap — Windows/Linux shells are in development.
+
+- Trigger: hold / double-tap-and-hold ⌘ (configurable threshold & mode)
+- Execute: press a listed combo, click a row, or hit ⏎ on the best match
+- Sources: app menus (Accessibility API), macOS system hotkeys (dynamic), trackpad gestures, skhd, Jitouch, custom JSON
+- Extras: favorites, hide-known, group collapse, Markdown export, CLI (`--show/--export/--quit`), login item, weekly update check
+- Build: `swift run` · `Scripts/build_app.sh` · `swift test` · `cd core-rust && cargo test`
+
+Licensed under the [MIT License](LICENSE).
+
 类 KeyCue 的 macOS 快捷键提示工具：**长按 ⌘（或连续按两次 ⌘ 并按住）弹出当前应用的全部快捷键**，输入文字即可模糊筛选。鼠标点菜单太慢、快捷键记不住时的效率工具。
 
 ## 当前状态（M3 已完成）
