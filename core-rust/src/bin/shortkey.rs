@@ -17,6 +17,88 @@ use shortkey_core::store::Store;
 #[cfg(target_os = "windows")]
 use shortkey_core::platform::windows::{KeyboardHookTrigger, Win32MenuSource};
 
+/// Windows 专属：托盘 / 鼠标定位 / 开机自启
+#[cfg(target_os = "windows")]
+mod winextras {
+    use std::sync::Arc;
+    use tray_icon::menu::{Menu, MenuEvent, MenuItem};
+    use tray_icon::TrayIconBuilder;
+
+    const TRAY_RGBA: &[u8] = include_bytes!("../../assets/tray.rgba");
+    const RUN_KEY: &str = r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run";
+
+    /// 托盘常驻：显示 / 开机自启 / 退出
+    pub fn setup_tray(bridge: Arc<super::Bridge>) {
+        let show_item = MenuItem::with_id("show", "显示 ShortKey", true, None);
+        let autostart_item = MenuItem::with_id("autostart", "开机自启", true, None);
+        let quit_item = MenuItem::with_id("quit", "退出", true, None);
+        let mut menu = Menu::new();
+        let _ = menu.append(&show_item);
+        let _ = menu.append(&autostart_item);
+        let _ = menu.append(&quit_item);
+
+        let icon = tray_icon::Icon::from_rgba(TRAY_RGBA.to_vec(), 32, 32)
+            .expect("托盘图标解码失败");
+        let tray = TrayIconBuilder::new()
+            .with_icon(icon)
+            .with_tooltip("ShortKey — 按住 Ctrl 弹出快捷键")
+            .with_menu(Box::new(menu))
+            .build()
+            .expect("托盘创建失败");
+        std::mem::forget(tray); // 常驻保活
+
+        std::thread::spawn(move || {
+            for event in MenuEvent::receiver() {
+                if event.id() == "show" {
+                    bridge.request_show();
+                } else if event.id() == "autostart" {
+                    let enable = !autostart_enabled();
+                    let _ = set_autostart(enable);
+                } else if event.id() == "quit" {
+                    std::process::exit(0);
+                }
+            }
+        });
+    }
+
+    pub fn cursor_position() -> Option<(f32, f32)> {
+        use windows::Win32::Foundation::POINT;
+        use windows::Win32::UI::WindowsAndMessaging::GetCursorPos;
+        let mut point = POINT::default();
+        unsafe {
+            GetCursorPos(&mut point).ok()?;
+        }
+        Some((point.x as f32, point.y as f32))
+    }
+
+    pub fn autostart_enabled() -> bool {
+        std::process::Command::new("reg")
+            .args(["query", RUN_KEY, "/v", "ShortKey"])
+            .output()
+            .map(|output| output.status.success())
+            .unwrap_or(false)
+    }
+
+    pub fn set_autostart(enable: bool) -> bool {
+        let Ok(exe) = std::env::current_exe() else { return false };
+        let path = exe.display().to_string();
+        let mut command = std::process::Command::new("reg");
+        if enable {
+            command.args(["add", RUN_KEY, "/v", "ShortKey", "/d", &path, "/f"]);
+        } else {
+            command.args(["delete", RUN_KEY, "/v", "ShortKey", "/f"]);
+        }
+        command.output().map(|output| output.status.success()).unwrap_or(false)
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+mod winextras {
+    pub fn cursor_position() -> Option<(f32, f32)> {
+        None
+    }
+}
+
 /// 触发线程 → UI 的桥
 struct Bridge {
     show: AtomicBool,
@@ -41,6 +123,8 @@ struct ShortKeyApp {
     store: Store,
     source: Box<dyn ShortcutSource>,
     app: ForegroundApp,
+    #[allow(dead_code)]
+    autostart: bool,
 }
 
 fn demo_system_items() -> Vec<ShortcutItem> {
@@ -103,7 +187,10 @@ fn main() -> eframe::Result<()> {
     let app = ShortKeyApp::new(bridge.clone(), store, make_source());
 
     #[cfg(target_os = "windows")]
-    start_windows_trigger(bridge.clone());
+    {
+        start_windows_trigger(bridge.clone());
+        winextras::setup_tray(bridge.clone());
+    }
 
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
@@ -146,6 +233,15 @@ impl eframe::App for ShortKeyApp {
         if show_requested && !self.visible {
             self.visible = true;
             self.items = self.source.collect(&self.app);
+            #[cfg(target_os = "windows")]
+            {
+                self.autostart = winextras::autostart_enabled();
+                if let Some((x, y)) = winextras::cursor_position() {
+                    let px = (x - 590.0).max(8.0);
+                    let py = (y - 740.0).max(8.0);
+                    ctx.send_viewport_cmd(egui::ViewportCommand::OuterPosition(egui::pos2(px, py)));
+                }
+            }
             for item in background_items() {
                 if !self.items.iter().any(|existing| existing.id == item.id) {
                     self.items.push(item);
@@ -257,6 +353,16 @@ impl eframe::App for ShortKeyApp {
                         .size(11.0)
                         .color(egui::Color32::from_gray(120)),
                 );
+                #[cfg(target_os = "windows")]
+                {
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        let mut enabled = self.autostart;
+                        if ui.checkbox(&mut enabled, "开机自启").changed() {
+                            let _ = winextras::set_autostart(enabled);
+                            self.autostart = winextras::autostart_enabled();
+                        }
+                    });
+                }
             });
 
         if hide {
@@ -282,6 +388,7 @@ impl ShortKeyApp {
                 name: "system".into(),
                 app_id: "system".into(),
             },
+            autostart: false,
         }
     }
 
