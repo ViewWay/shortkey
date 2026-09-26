@@ -16,6 +16,10 @@ impl Modifiers {
         self.0 & other.0 == other.0
     }
 
+    pub fn is_empty(self) -> bool {
+        self.0 == 0
+    }
+
     pub fn insert(&mut self, other: Self) {
         self.0 |= other.0;
     }
@@ -38,6 +42,20 @@ impl Modifiers {
         if value & 4 != 0 { m.insert(Self::CONTROL); }
         if value & 8 == 0 { m.insert(Self::COMMAND); }
         m
+    }
+}
+
+impl std::ops::BitOr for Modifiers {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Self(self.0 | rhs.0)
+    }
+}
+
+impl std::ops::BitOrAssign for Modifiers {
+    fn bitor_assign(&mut self, rhs: Self) {
+        self.0 |= rhs.0;
     }
 }
 

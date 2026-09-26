@@ -7,3 +7,11 @@ description = "ShortKey 跨平台核心：数据模型、模糊搜索、配置�
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+
+# Windows 平台实现（交叉检查/编译时启用）
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Input_KeyboardAndMouse",
+] }
