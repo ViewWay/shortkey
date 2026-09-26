@@ -4,7 +4,7 @@
 use std::mem::size_of;
 
 use windows::core::PWSTR;
-use windows::Win32::Foundation::HMENU;
+use windows::Win32::UI::WindowsAndMessaging::HMENU;
 use windows::Win32::UI::WindowsAndMessaging::{
     GetForegroundWindow, GetMenu, GetMenuItemCount, GetMenuItemInfoW, GetSubMenu,
     MENUITEMINFOW, MIIM_STRING,
@@ -41,7 +41,7 @@ unsafe fn collect_foreground() -> Vec<ShortcutItem> {
     let mut items = Vec::new();
     let count = GetMenuItemCount(hmenu);
     for index in 0..count {
-        let text = item_text(hmenu, index).unwrap_or_default();
+        let text = item_text(hmenu, index as u32).unwrap_or_default();
         let sub = GetSubMenu(hmenu, index);
         if sub.is_invalid() {
             continue;
@@ -58,7 +58,7 @@ unsafe fn walk(hmenu: HMENU, group: &str, depth: u32, out: &mut Vec<ShortcutItem
     }
     let count = GetMenuItemCount(hmenu);
     for index in 0..count {
-        let text = item_text(hmenu, index).unwrap_or_default();
+        let text = item_text(hmenu, index as u32).unwrap_or_default();
         let sub = GetSubMenu(hmenu, index);
         if !sub.is_invalid() {
             let title = text.split('\t').next().unwrap_or("").trim().to_string();
@@ -80,16 +80,16 @@ unsafe fn item_text(hmenu: HMENU, index: u32) -> Option<String> {
         fMask: MIIM_STRING,
         ..Default::default()
     };
-    if !GetMenuItemInfoW(hmenu, index, true, &mut info).as_bool() {
+    if GetMenuItemInfoW(hmenu, index, true, &mut info).is_err() {
         return None;
     }
     if info.cch == 0 {
         return Some(String::new());
     }
     let mut buffer = vec![0u16; info.cch as usize + 1];
-    info.dwTypeData = Some(PWSTR(buffer.as_mut_ptr()));
+    info.dwTypeData = PWSTR(buffer.as_mut_ptr());
     info.cch += 1;
-    if !GetMenuItemInfoW(hmenu, index, true, &mut info).as_bool() {
+    if GetMenuItemInfoW(hmenu, index, true, &mut info).is_err() {
         return None;
     }
     Some(String::from_utf16_lossy(&buffer[..(info.cch as usize - 1).min(buffer.len())]))

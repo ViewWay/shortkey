@@ -30,4 +30,16 @@ final class OverlayPanel: NSPanel {
         let y = visible.midY - frame.height / 2 + visible.height * 0.04
         setFrameOrigin(NSPoint(x: max(visible.minX, x), y: max(visible.minY, y)))
     }
+
+    /// 出现在鼠标上方（跟随鼠标模式）
+    func moveToCursor() {
+        let mouse = NSEvent.mouseLocation
+        guard let visible = (NSScreen.screens.first { $0.frame.contains(mouse) } ?? NSScreen.main)?.visibleFrame else { return }
+        let size = frame.size
+        let x = mouse.x - size.width / 2
+        let y = mouse.y - size.height - 24
+        let clampedX = min(max(visible.minX + 8, x), visible.maxX - size.width - 8)
+        let clampedY = min(max(visible.minY + 8, y), visible.maxY - size.height - 8)
+        setFrameOrigin(NSPoint(x: clampedX, y: clampedY))
+    }
 }

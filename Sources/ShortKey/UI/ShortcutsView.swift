@@ -24,8 +24,8 @@ struct ShortcutsView: View {
     var onExport: () -> Void
 
     @FocusState private var searchFocused: Bool
-    /// KeyCue 式密度：大浮层用 4 列
-    private let columnCount = 4
+    /// 列数跟随设置
+    private var columnCount: Int { model.columnCount }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -158,7 +158,9 @@ struct ShortcutsView: View {
                         match: row.match,
                         onToggleFavorite: { onToggleFavorite(row.item.id) },
                         onToggleHidden: { onToggleHidden(row.item.id) },
-                        onExecute: { onExecuteItem(row.item) }
+                        onExecute: { onExecuteItem(row.item) },
+                        isSelected: model.selectedItemId == row.item.id,
+                        fontSize: model.rowFontSize
                     )
                 }
             }

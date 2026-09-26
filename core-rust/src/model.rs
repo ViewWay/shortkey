@@ -70,10 +70,12 @@ pub struct ShortcutItem {
     /// 完整菜单路径，如 ["文件", "导出", "导出为 PDF"]
     pub path: Vec<String>,
     pub enabled: bool,
+    /// 特殊键虚拟键码（展示与合成用）
+    pub virtual_key: Option<u32>,
 }
 
 impl ShortcutItem {
-    pub fn new(title: &str, key: &str, modifiers: Modifiers, group: &str, path: Vec<String>) -> Self {
+    pub fn new(title: &str, key: &str, modifiers: Modifiers, group: &str, path: Vec<String>, virtual_key: Option<u32>) -> Self {
         let symbols = modifiers.symbols();
         let id = format!("{}\u{1f}{}\u{1f}{}{}", path.join("/"), title, symbols, key);
         Self {
@@ -84,6 +86,7 @@ impl ShortcutItem {
             group: group.to_string(),
             path,
             enabled: true,
+            virtual_key,
         }
     }
 }

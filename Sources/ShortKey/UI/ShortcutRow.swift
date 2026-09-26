@@ -10,6 +10,10 @@ struct ShortcutRow: View {
     var onToggleFavorite: () -> Void
     var onToggleHidden: () -> Void
     var onExecute: () -> Void
+    /// ↑↓ 搜索导航选中态
+    var isSelected: Bool = false
+    /// 行字号（设置可调）
+    var fontSize: Double = 13
 
     @State private var isHovering = false
 
@@ -23,7 +27,7 @@ struct ShortcutRow: View {
             .frame(width: 32, alignment: .leading)
 
             titleText
-                .font(.system(size: 13))
+                .font(.system(size: fontSize))
                 .lineLimit(1)
                 .truncationMode(.middle)
                 .opacity(item.isEnabled && !isHidden ? 1 : 0.4)
@@ -32,7 +36,7 @@ struct ShortcutRow: View {
             Spacer(minLength: 10)
 
             Text(item.modifiers.symbols + item.key)
-                .font(.system(size: 12.5, weight: .medium, design: .rounded))
+                .font(.system(size: fontSize - 0.5, weight: .medium, design: .rounded))
                 .foregroundStyle(Color.accentColor)
                 .lineLimit(1)
                 .opacity(item.isEnabled && !isHidden ? 1 : 0.5)
@@ -41,7 +45,15 @@ struct ShortcutRow: View {
         .padding(.vertical, 2.5)
         .background(
             RoundedRectangle(cornerRadius: 5, style: .continuous)
-                .fill(isHovering ? Color.primary.opacity(0.06) : Color.clear)
+                .fill(
+                    isSelected
+                        ? AnyShapeStyle(Color.accentColor.opacity(0.18))
+                        : (isHovering ? AnyShapeStyle(Color.primary.opacity(0.06)) : AnyShapeStyle(Color.clear))
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                .strokeBorder(isSelected ? Color.accentColor : Color.clear, lineWidth: 1)
         )
         .contentShape(Rectangle())
         .onTapGesture { onExecute() }

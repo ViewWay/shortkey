@@ -62,7 +62,7 @@ mod tests {
 
     #[test]
     fn aggregator_dedupes() {
-        let item = ShortcutItem::new("复制", "C", Modifiers::COMMAND, "编辑", vec!["编辑".to_string()]);
+        let item = ShortcutItem::new("复制", "C", Modifiers::COMMAND, "编辑", vec!["编辑".to_string()], None);
         let a = StaticSource(vec![item.clone()]);
         let b = StaticSource(vec![item]);
         let agg = Aggregator::new(vec![Box::new(a), Box::new(b)]);

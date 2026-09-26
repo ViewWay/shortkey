@@ -22,6 +22,9 @@ final class EventTapController: @unchecked Sendable {
     private let lock = NSLock()
     private var mode: TriggerMode = .hold
     private var threshold: TimeInterval = 0.3
+    /// 触发键（设置页可在 ⌘/⌥/⌃ 间切换）
+    private var triggerCodes: Set<Int64> = [55, 54]
+    private var triggerMask: CGEventFlags = .maskCommand
     private var tapState: TapState = .idle
     private var overlayRequested = false
     private var stateWorkItem: DispatchWorkItem?
@@ -36,6 +39,8 @@ final class EventTapController: @unchecked Sendable {
     var onCancel: (() -> Void)?
     /// 主线程回调（回车：执行搜索最佳匹配）
     var onConfirm: (() -> Void)?
+    /// 主线程回调（↑↓ 移动搜索选中项，±1）
+    var onNavigate: ((Int) -> Void)?
     /// 浮层显示期间按下组合键时回调（tap 线程）：命中已列出快捷键返回 true 表示已转发执行并拦截
     var comboHandler: ((CGEvent, Int64, CGEventFlags) -> Bool)?
     /// 重发事件的标记：带此标记的事件直接放行，防止转发回环
@@ -47,6 +52,8 @@ final class EventTapController: @unchecked Sendable {
     private static let escapeKeyCode: Int64 = 53
     private static let returnKeyCode: Int64 = 36
     private static let tabKeyCode: Int64 = 48
+    private static let upArrowKeyCode: Int64 = 126
+    private static let downArrowKeyCode: Int64 = 125
     /// doubleTap：第一次按住超过此时长视为普通长按，不触发
     private static let maxFirstTapHold: TimeInterval = 0.5
     /// doubleTap：两次按下之间的最大间隔
@@ -65,6 +72,14 @@ final class EventTapController: @unchecked Sendable {
     /// 由 AppDelegate 在浮层 show/hide 时同步状态
     func setVisible(_ visible: Bool) {
         lock.lock(); overlayRequested = visible; lock.unlock()
+    }
+
+    /// 设置触发键（设置页切换 ⌘/⌥/⌃ 时调用）
+    func setTriggerKeys(_ codes: Set<Int64>, mask: CGEventFlags) {
+        lock.lock()
+        triggerCodes = codes
+        triggerMask = mask
+        lock.unlock()
     }
 
     var isOverlayRequested: Bool {
@@ -177,18 +192,19 @@ final class EventTapController: @unchecked Sendable {
             return Unmanaged.passUnretained(event)
         }
 
-        if isCommandKey {
-            if event.flags.contains(.maskCommand) {
-                if mods == .maskCommand {
-                    commandPressedLocked()
+        if isTriggerKey(keyCode) {
+            let hasTrigger = event.flags.contains(triggerMask)
+            if hasTrigger {
+                if mods == triggerMask {
+                    commandPressedLocked() // 纯触发键按下
                 } else {
-                    cancelTriggerLocked()
+                    cancelTriggerLocked() // 触发键+其它修饰 = 真实快捷键
                 }
             } else {
                 commandReleasedLocked()
             }
-        } else if mods != .maskCommand {
-            // 其他修饰键参与进来，取消检测
+        } else if mods != triggerMask {
+            // 其它修饰键参与进来，取消检测
             cancelTriggerLocked()
         }
         return Unmanaged.passUnretained(event)
@@ -229,6 +245,12 @@ final class EventTapController: @unchecked Sendable {
         case Self.returnKeyCode:
             notifyMainConfirm()
             return nil
+        case Self.upArrowKeyCode:
+            notifyMainNavigate(-1)
+            return nil
+        case Self.downArrowKeyCode:
+            notifyMainNavigate(1)
+            return nil
         case Self.tabKeyCode:
             return nil
         default:
@@ -240,14 +262,14 @@ final class EventTapController: @unchecked Sendable {
             return nil
         }
 
-        if mods.contains(.maskCommand) {
-            let others = mods.subtracting(.maskCommand)
+        if mods.contains(triggerMask) {
+            let others = mods.subtracting(triggerMask)
             if others.isSubset(of: [.maskShift]) {
-                // ⌘ / ⇧⌘ + 字符 → 剥离 ⌘ 后继续派发，输入进搜索框
-                event.flags = event.flags.subtracting(.maskCommand)
+                // 触发键(+⇧) + 字符 → 剥离触发键后继续派发，输入进搜索框
+                event.flags = event.flags.subtracting(triggerMask)
                 return pass
             }
-            return nil // ⌃⌘ / ⌥⌘ 组合在浮层显示期间拦截
+            return nil // 其它修饰组合在浮层显示期间拦截
         }
         return pass
     }
@@ -330,6 +352,16 @@ final class EventTapController: @unchecked Sendable {
         DispatchQueue.main.async {
             MainActor.assumeIsolated { self.onConfirm?() }
         }
+    }
+
+    private func notifyMainNavigate(_ delta: Int) {
+        DispatchQueue.main.async {
+            MainActor.assumeIsolated { self.onNavigate?(delta) }
+        }
+    }
+
+    private func isTriggerKey(_ keyCode: Int64) -> Bool {
+        triggerCodes.contains(keyCode)
     }
 
     private func cancelTriggerLocked() {

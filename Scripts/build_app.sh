@@ -5,6 +5,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 CONFIG="${1:-release}"
+# Rust 核心（Swift 侧静态链接 libshortkey_core.a）
+( cd core-rust && RUSTFLAGS="-C link-arg=-fuse-ld=ld" cargo +stable build --release )
 swift build -c "$CONFIG"
 
 BIN_DIR="$(swift build -c "$CONFIG" --show-bin-path)"

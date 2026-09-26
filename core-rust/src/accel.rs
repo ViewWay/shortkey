@@ -24,6 +24,7 @@ pub fn parse_menu_text(text: &str) -> Option<ShortcutItem> {
         modifiers,
         "菜单",
         vec!["菜单".to_string()],
+        None,
     ))
 }
 
@@ -86,6 +87,54 @@ fn normalize_key(key: &str) -> Option<String> {
         return Some(first.to_ascii_uppercase().to_string());
     }
     Some(key.to_string())
+}
+
+/// 键名 → (显示符号, 虚拟键码)；skhd / 自定义解析共用
+pub fn normalize_key_full(name: &str) -> Option<(String, Option<u32>)> {
+    let lower = name.to_ascii_lowercase();
+    let special: Option<(&str, u32)> = match lower.as_str() {
+        "esc" | "escape" => Some(("⎋", 53)),
+        "enter" | "return" => Some(("↩", 36)),
+        "space" => Some(("␣", 49)),
+        "tab" => Some(("⇥", 48)),
+        "bksp" | "backspace" => Some(("⌫", 51)),
+        "del" | "delete" => Some(("⌦", 117)),
+        "ins" | "insert" => Some(("⎀", 110)),
+        "up" => Some(("↑", 126)),
+        "down" => Some(("↓", 125)),
+        "left" => Some(("←", 123)),
+        "right" => Some(("→", 124)),
+        "home" => Some(("↖", 115)),
+        "end" => Some(("↘", 119)),
+        "pgup" => Some(("⇞", 116)),
+        "pgdn" | "pagedown" => Some(("⇟", 121)),
+        _ => None,
+    };
+    if let Some((symbol, virtual_key)) = special {
+        return Some((symbol.to_string(), Some(virtual_key)));
+    }
+    let display = normalize_key(name)?;
+    let virtual_key = name
+        .chars()
+        .next()
+        .and_then(char_key_code);
+    Some((display, virtual_key))
+}
+
+/// ANSI 布局字符 → 虚拟键码
+pub fn char_key_code(c: char) -> Option<u32> {
+    let code = match c.to_ascii_lowercase() {
+        'a' => 0, 's' => 1, 'd' => 2, 'f' => 3, 'h' => 4, 'g' => 5,
+        'z' => 6, 'x' => 7, 'c' => 8, 'v' => 9, 'b' => 11, 'q' => 12,
+        'w' => 13, 'e' => 14, 'r' => 15, 'y' => 16, 't' => 17,
+        '1' => 18, '2' => 19, '3' => 20, '4' => 21, '6' => 22, '5' => 23,
+        '=' => 24, '9' => 25, '7' => 26, '-' => 27, '8' => 28, '0' => 29,
+        ']' => 30, 'o' => 31, 'u' => 32, '[' => 33, 'i' => 34, 'p' => 35,
+        'l' => 37, 'j' => 38, '\'' => 39, 'k' => 40, ';' => 41, '\\' => 42,
+        ',' => 44, '/' => 45, '.' => 46, '`' => 50, ' ' => 49,
+        _ => return None,
+    };
+    Some(code)
 }
 
 #[cfg(test)]

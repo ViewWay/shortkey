@@ -5,10 +5,10 @@
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
-use windows::Win32::Foundation::{LPARAM, LRESULT, WPARAM};
+use windows::Win32::Foundation::{HINSTANCE, LPARAM, LRESULT, WPARAM};
 use windows::Win32::UI::WindowsAndMessaging::{
-    CallNextHookEx, GetMessageW, HHOOK, KBDLLHOOKSTRUCT, LLKHF_UP, SetWindowsHookExW,
-    UnhookWindowsHookEx, WH_KEYBOARD_LL,
+    CallNextHookEx, GetMessageW, HHOOK, KBDLLHOOKSTRUCT, LLKHF_UP, MSG,
+    SetWindowsHookExW, UnhookWindowsHookEx, WH_KEYBOARD_LL,
 };
 
 use crate::trigger::{TriggerConfig, TriggerEngine, TriggerEvent};
@@ -38,7 +38,7 @@ struct Shared {
 }
 
 static SHARED: OnceLock<Arc<Shared>> = OnceLock::new();
-static HOOK: Mutex<Option<HHOOK>> = Mutex::new(None);
+static HOOK: Mutex<Option<usize>> = Mutex::new(None);
 
 /// Ctrl 长按触发器
 pub struct KeyboardHookTrigger;
@@ -81,9 +81,9 @@ impl TriggerEngine for KeyboardHookTrigger {
         std::thread::Builder::new()
             .name("shortkey-hook".into())
             .spawn(move || unsafe {
-                match SetWindowsHookExW(WH_KEYBOARD_LL, Some(hook_proc), HINSTANCE_DEFAULT, 0) {
+                match SetWindowsHookExW(WH_KEYBOARD_LL, Some(hook_proc), HINSTANCE::default(), 0) {
                     Ok(hook) => {
-                        *HOOK.lock().unwrap() = Some(hook);
+                        *HOOK.lock().unwrap() = Some(hook.0 as usize);
                         let mut msg = MSG::default();
                         while GetMessageW(&mut msg, None, 0, 0).as_bool() {}
                     }
@@ -127,9 +127,9 @@ impl TriggerEngine for KeyboardHookTrigger {
     }
 
     fn stop(&mut self) {
-        if let Some(hook) = HOOK.lock().unwrap().take() {
+        if let Some(raw) = HOOK.lock().unwrap().take() {
             unsafe {
-                let _ = UnhookWindowsHookEx(hook);
+                let _ = UnhookWindowsHookEx(HHOOK(raw as *mut _));
             }
         }
     }
@@ -138,7 +138,7 @@ impl TriggerEngine for KeyboardHookTrigger {
 unsafe extern "system" fn hook_proc(code: i32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
     if code >= 0 {
         let info = &*(lparam.0 as *const KBDLLHOOKSTRUCT);
-        handle_key(info.vkCode, (info.flags & LLKHF_UP) != 0);
+        handle_key(info.vkCode, (info.flags & LLKHF_UP).0 != 0);
     }
     CallNextHookEx(None, code, wparam, lparam)
 }

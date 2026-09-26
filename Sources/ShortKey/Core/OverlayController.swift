@@ -21,6 +21,36 @@ final class OverlayModel: ObservableObject {
     @Published var customItems: [ShortcutItem] = []
     /// 当前搜索的最佳匹配（回车执行）
     @Published var bestMatchItem: ShortcutItem?
+    /// ↑↓ 选中的条目 id（跨列高亮）
+    @Published var selectedItemId: String?
+    /// 列数（设置可调）
+    @Published var columnCount: Int = 4
+    /// 行字号（设置可调）
+    @Published var rowFontSize: Double = 13
+
+    /// ↑↓ 导航：仅搜索态；对全部来源按标题模糊分排序，选中项随移动更新
+    func navigate(_ delta: Int) {
+        let query = query.trimmingCharacters(in: .whitespaces)
+        guard !query.isEmpty else { return }
+        var pool = items + skhdItems + customItems + ShortcutCatalog.systemItems + ShortcutCatalog.gestureItems
+        let hiddenSet = hidden
+        pool = pool.filter { showHidden || !hiddenSet.contains($0.id) }
+        guard !pool.isEmpty else { return }
+
+        var ranked: [(ShortcutItem, Int)] = []
+        for item in pool {
+            guard let m = FuzzyMatcher.match(query: query, target: item.title) else { continue }
+            ranked.append((item, m.score))
+        }
+        ranked.sort { $0.1 > $1.1 }
+        guard !ranked.isEmpty else { return }
+
+        let current = selectedItemId.flatMap { id in ranked.firstIndex { $0.0.id == id } }
+        let next = current.map { max(0, min(ranked.count - 1, $0 + delta)) } ?? 0
+        selectedItemId = ranked[next].0.id
+        bestMatchItem = ranked[next].0
+    }
+
     /// 是否显示已隐藏的快捷键
     @Published var showHidden = false
     /// 折叠的分组（全局持久化到 UserDefaults）
@@ -47,6 +77,7 @@ final class OverlayModel: ObservableObject {
         self.favorites = state.favorites
         self.hidden = state.hidden
         self.query = ""
+        self.selectedItemId = nil
         self.revision += 1
     }
 }
@@ -79,8 +110,14 @@ final class OverlayController: NSObject, NSWindowDelegate {
         currentBundleID = bundleID
         let panel = ensurePanel()
         model.update(appName: appName, icon: icon, items: items, state: store.state(for: bundleID))
+        model.columnCount = Int(SettingsStore.shared.columnCount)
+        model.rowFontSize = SettingsStore.shared.rowFontSize
         panel.setContentSize(overlaySize())
-        panel.centerOnScreen()
+        if SettingsStore.shared.overlayPosition == .cursor {
+            panel.moveToCursor()
+        } else {
+            panel.centerOnScreen()
+        }
         panel.orderFrontRegardless()
         panel.makeKey()
         startMouseMonitoring()

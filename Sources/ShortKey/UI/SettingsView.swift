@@ -25,6 +25,32 @@ struct SettingsView: View {
                     Text(appearance.label).tag(appearance)
                 }
             }
+            Picker("触发键", selection: $settings.triggerKey) {
+                ForEach(SettingsStore.TriggerKey.allCases) { key in
+                    Text(key.label).tag(key)
+                }
+            }
+            Picker("出现位置", selection: $settings.overlayPosition) {
+                ForEach(SettingsStore.OverlayPosition.allCases) { position in
+                    Text(position.label).tag(position)
+                }
+            }
+            HStack {
+                Text("列数")
+                Slider(value: $settings.columnCount, in: 2...5, step: 1)
+                Text("\(Int(settings.columnCount)) 列")
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                    .frame(width: 44, alignment: .trailing)
+            }
+            HStack {
+                Text("行字号")
+                Slider(value: $settings.rowFontSize, in: 12...16, step: 0.5)
+                Text("\(Int(settings.rowFontSize)) pt")
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                    .frame(width: 44, alignment: .trailing)
+            }
             Divider()
             Toggle("开机自启", isOn: Binding(
                 get: { SMAppService.mainApp.status == .enabled },

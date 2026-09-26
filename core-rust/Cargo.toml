@@ -4,14 +4,47 @@ version = "0.1.0"
 edition = "2021"
 description = "ShortKey 跨平台核心：数据模型、模糊搜索、配置存储、平台 trait"
 
+[lib]
+name = "shortkey_core"
+path = "src/lib.rs"
+crate-type = ["lib", "staticlib"]
+
+[[bin]]
+name = "shortkey"
+path = "src/bin/shortkey.rs"
+required-features = ["gui"]
+
+[features]
+default = []
+gui = ["eframe", "egui", "arboard"]
+
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
+# GUI（--features gui 时启用；macOS 上可直接跑，Windows 上交叉编译）
+[dependencies.eframe]
+version = "0.29"
+optional = true
+default-features = false
+features = ["default_fonts", "glow", "x11"]
+
+[dependencies.egui]
+version = "0.29"
+optional = true
+
+[dependencies.arboard]
+version = "3"
+optional = true
+
 # Windows 平台实现（交叉检查/编译时启用）
+[target.'cfg(target_os = "linux")'.dependencies]
+x11-dl = "2"
+
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.58", features = [
     "Win32_Foundation",
+    "Win32_Graphics_Gdi",
     "Win32_UI_WindowsAndMessaging",
     "Win32_UI_Input_KeyboardAndMouse",
 ] }

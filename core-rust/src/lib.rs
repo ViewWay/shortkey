@@ -7,6 +7,10 @@
 //! 平台实现进度见 `src/platform/`，产品现状见仓库根目录 README。
 
 pub mod accel;
+pub mod custom;
+pub mod kde;
+pub mod skhd;
+pub mod ffi;
 pub mod fuzzy;
 pub mod model;
 pub mod platform;

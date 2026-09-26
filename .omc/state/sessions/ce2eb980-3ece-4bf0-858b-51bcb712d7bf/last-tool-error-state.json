@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"swift build 2>&1 | grep -E \\\"error:\\\" | sort -u | head -12; echo \\\"---\\\"; swift build 2>&1 | grep -c \\\"Build complete\\\" && swift test 2>&1 | grep \\\"Executed.*tests\\\" | tail -1\",\"timeout\":3...",
+  "error": "Exit code 1\n    \u001b[0;36m|\u001b[0;0m                                `- \u001b[1;31merror: \u001b[1;39mincorrect argument labels in call (have 'item:isFavorite:isHidden:isSelected:fontSize:match:onToggleFavorite:onToggleHidden:onExecute:', expected 'item:isFavorite:isHidden:match:onToggleFavorite:onToggleHidden:onExecute:isSelected:fontSize:')\u001b[0;0m\n/Users/yimiliya/Projects/shortkey/Sources/ShortKey/UI/ShortcutsView.swift:154:32: \u001b[1;31merror: \u001b[1;39mincorrect argument labels in call (have 'item:isFavorite:isHid...",
+  "timestamp": "2026-09-26T15:29:21.294Z",
+  "retry_count": 1
+}

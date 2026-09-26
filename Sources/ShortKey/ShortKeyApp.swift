@@ -31,6 +31,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var napActivity: NSObjectProtocol?
     /// CLI 启动时待处理的动作（无常驻实例时由本次启动代为执行）
     private var pendingCLIAction: CLI.Action?
+    /// 菜单扫描缓存（同应用 60 秒内复用，避免每次唤起重读菜单）
+    private var scanCache: [String: (scan: MenuScan, date: Date)] = [:]
+    private let scanCacheTTL: TimeInterval = 60
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         // CLI：--help 直接打印；--show/--export/--quit 有常驻实例则转发后退出
@@ -68,6 +71,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         tap.onConfirm = { [weak self] in
             self?.confirmBestMatch()
+        }
+        tap.onNavigate = { [weak self] delta in
+            self?.overlay?.model.navigate(delta)
         }
         eventTap = tap
 
@@ -130,12 +136,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let bundleID = app.bundleIdentifier ?? "pid-\(pid)"
 
         Task { @MainActor in
-            let scan = await Task.detached(priority: .userInitiated) {
-                MenuShortcutsReader.scan(pid: pid)
-            }.value
-            // 等待期间可能已关闭或重新触发，丢弃过期结果
-            guard generation == self.showGeneration,
-                  self.eventTap?.isOverlayRequested == true else { return }
+            // 先确认仍需要显示，再决定是否走缓存
+            guard self.eventTap?.isOverlayRequested == true else { return }
+            let scan: MenuScan
+            if let entry = self.scanCache[bundleID], Date().timeIntervalSince(entry.date) < scanCacheTTL {
+                scan = entry.scan
+            } else {
+                scan = await Task.detached(priority: .userInitiated) {
+                    MenuShortcutsReader.scan(pid: pid)
+                }.value
+                // 扫描期间可能已关闭或重新触发，丢弃过期结果
+                guard generation == self.showGeneration,
+                      self.eventTap?.isOverlayRequested == true else { return }
+                self.scanCache[bundleID] = (scan, Date())
+            }
             self.activeShortcuts.set(scan.items)
             let icon = NSRunningApplication(processIdentifier: pid)?.icon
             self.overlay?.show(appName: name, bundleID: bundleID, items: scan.items, icon: icon, performer: MenuPerformer(elements: scan.elements))

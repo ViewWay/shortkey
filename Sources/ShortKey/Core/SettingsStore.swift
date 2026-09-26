@@ -27,6 +27,34 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    enum OverlayPosition: String, CaseIterable, Identifiable {
+        case center
+        case cursor
+
+        var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .center: return "屏幕居中"
+            case .cursor: return "跟随鼠标"
+            }
+        }
+    }
+
+    enum TriggerKey: String, CaseIterable, Identifiable {
+        case command
+        case option
+        case control
+
+        var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .command: return "⌘ Command"
+            case .option: return "⌥ Option"
+            case .control: return "⌃ Control"
+            }
+        }
+    }
+
     /// 设置变更回调（AppDelegate 用于同步 EventTapController）
     var onChange: (() -> Void)?
 
@@ -51,11 +79,34 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    @Published var overlayPosition: OverlayPosition {
+        didSet { UserDefaults.standard.set(overlayPosition.rawValue, forKey: "overlayPosition") }
+    }
+
+    @Published var triggerKey: TriggerKey {
+        didSet {
+            UserDefaults.standard.set(triggerKey.rawValue, forKey: "triggerKey")
+            onChange?()
+        }
+    }
+
+    @Published var columnCount: Double {
+        didSet { UserDefaults.standard.set(columnCount, forKey: "columnCount") }
+    }
+
+    @Published var rowFontSize: Double {
+        didSet { UserDefaults.standard.set(rowFontSize, forKey: "rowFontSize") }
+    }
+
     private init() {
         let defaults = UserDefaults.standard
         triggerKind = TriggerKind(rawValue: defaults.string(forKey: "triggerKind") ?? "") ?? .hold
         thresholdMs = defaults.object(forKey: "thresholdMs") as? Double ?? 300
         appearance = Appearance(rawValue: defaults.string(forKey: "appearance") ?? "") ?? .system
+        overlayPosition = OverlayPosition(rawValue: defaults.string(forKey: "overlayPosition") ?? "") ?? .center
+        triggerKey = TriggerKey(rawValue: defaults.string(forKey: "triggerKey") ?? "") ?? .command
+        columnCount = defaults.object(forKey: "columnCount") as? Double ?? 4
+        rowFontSize = defaults.object(forKey: "rowFontSize") as? Double ?? 13
         applyAppearance()
     }
 
