@@ -32,6 +32,12 @@ else
   echo "   签名身份: ad-hoc（重建后需重新授权辅助功能）"
 fi
 
+# 分发包（ditto 保留 macOS 元数据/签名属性）
+ZIP="build/ShortKey-macOS.zip"
+rm -f "$ZIP"
+ditto -c -k --keepParent "$APP_DIR" "$ZIP"
+echo "✅ 分发包: $ZIP"
+
 echo "✅ 已生成 $APP_DIR"
 echo "   运行: open $APP_DIR"
 echo "   首次使用请在 系统设置 → 隐私与安全性 → 辅助功能 中授权 ShortKey"
