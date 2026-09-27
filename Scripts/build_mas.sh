@@ -29,6 +29,22 @@ if [ "${#MISSING[@]}" -gt 0 ]; then
   exit 1
 fi
 
+# App Store 上传要求主 bundle 内嵌 provisioning profile
+PROFILE=""
+for candidate in Resources/ShortKey.mas.provisionprofile ~/Downloads/*.mobileprovision; do
+  [ -f "$candidate" ] && PROFILE="$candidate" && break
+done
+if [ -n "$PROFILE" ]; then
+  echo "==> 嵌入 provisioning profile: $PROFILE"
+  cp "$PROFILE" "$APP/Contents/embedded.mobileprovision"
+else
+  echo "❌ 缺少 provisioning profile："
+  echo "   ASC → Certificates, Identifiers & Profiles → Profiles → ＋"
+  echo "   选 App Store Connect Uploader → 关联 app.shortkey.ShortKey →"
+  echo "   选 Apple Distribution 证书 → 下载 .mobileprovision 放入 ~/Downloads 或 Resources/"
+  exit 1
+fi
+
 echo "==> App 签名（沙盒 entitlements + ${APP_CERT}）..."
 codesign --force --sign "$APP_CERT" \
   --entitlements Resources/ShortKey.mas.entitlements \
