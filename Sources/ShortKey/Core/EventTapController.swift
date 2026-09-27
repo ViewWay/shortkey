@@ -181,7 +181,6 @@ final class EventTapController: @unchecked Sendable {
 
     private func handleFlagsChanged(_ event: CGEvent) -> Unmanaged<CGEvent>? {
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
-        let isCommandKey = Self.commandKeyCodes.contains(keyCode)
         let mods = event.flags.intersection(Self.modifierFlags)
 
         lock.lock()
