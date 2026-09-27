@@ -13,7 +13,8 @@ PKG="build/ShortKey-mas.pkg"
 
 # 证书预检：缺什么直接说清楚
 APP_CERT="$(security find-identity -v -p codesigning 2>/dev/null | grep -m1 'Apple Distribution' | sed 's/.*"\(.*\)"/\1/' || true)"
-PKG_CERT="$(security find-identity -v -p codesigning 2>/dev/null | grep -m1 '3rd Party Mac Developer Installer' | sed 's/.*"\(.*\)"/\1/' || true)"
+# 注意：Installer 证书用于签 .pkg，不出现在 codesigning 策略里，需不带 -p 查询
+PKG_CERT="$(security find-identity 2>/dev/null | grep -m1 '3rd Party Mac Developer Installer' | sed 's/.*"\(.*\)"/\1/' || true)"
 
 MISSING=()
 [ -z "$APP_CERT" ] && MISSING+=("Apple Distribution        （用于签 App）")
@@ -28,12 +29,12 @@ if [ "${#MISSING[@]}" -gt 0 ]; then
   exit 1
 fi
 
-echo "==> App 签名（沙盒 entitlements + $APP_CERT）..."
+echo "==> App 签名（沙盒 entitlements + ${APP_CERT}）..."
 codesign --force --sign "$APP_CERT" \
   --entitlements Resources/ShortKey.mas.entitlements \
   "$APP"
 
-echo "==> productbuild（$PKG_CERT）..."
+echo "==> productbuild（${PKG_CERT}）..."
 rm -f "$PKG"
 productbuild \
   --component "$APP" /Applications \
