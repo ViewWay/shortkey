@@ -19,6 +19,8 @@
 
 [下载 macOS](https://github.com/ViewWay/shortkey/releases) · [下载 Windows](https://github.com/ViewWay/shortkey/releases) · [快速开始](#-快速开始) · [架构](#️-架构)
 
+<img src="docs/screenshot.png" width="920" alt="ShortKey 浮层：应用多列 + macOS 系统 + 手势 + 自定义" />
+
 </div>
 
 ---
