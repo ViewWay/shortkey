@@ -52,6 +52,14 @@ public struct ShortcutModifiers: OptionSet, Hashable, Codable, Sendable {
             + (contains(.command) ? "⌘" : "")
     }
 
+    /// 逐个修饰键符号（⌃ ⌥ ⇧ ⌘ 顺序），供 UI 按类别着色
+    public var orderedSymbols: [String] {
+        (contains(.control) ? ["⌃"] : [])
+            + (contains(.option) ? ["⌥"] : [])
+            + (contains(.shift) ? ["⇧"] : [])
+            + (contains(.command) ? ["⌘"] : [])
+    }
+
     /// 解析 `AXMenuItemCmdModifiers` 位掩码：
     /// shift = 1<<0，option = 1<<1，control = 1<<2，1<<3 = 无 ⌘
     public static func fromAXModifiers(_ value: Int) -> ShortcutModifiers {

@@ -51,6 +51,7 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
                     .frame(width: 44, alignment: .trailing)
             }
+            Toggle("修饰键彩色标识", isOn: $settings.modifierColorCoding)
             Divider()
             Toggle("开机自启", isOn: Binding(
                 get: { SMAppService.mainApp.status == .enabled },

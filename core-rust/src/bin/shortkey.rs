@@ -177,6 +177,17 @@ fn make_source() -> Box<dyn ShortcutSource> {
     Box::new(StaticSource(background_items()))
 }
 
+/// 修饰键类别色：与 macOS 端 ShortcutRow 一致（取 Apple 深色模式系统色，浮层恒为深色底）
+fn modifier_color(glyph: char) -> egui::Color32 {
+    match glyph {
+        '⌃' => egui::Color32::from_rgb(48, 209, 88),   // green
+        '⌥' => egui::Color32::from_rgb(191, 90, 242), // purple
+        '⇧' => egui::Color32::from_rgb(255, 159, 10), // orange
+        '⌘' => egui::Color32::from_rgb(10, 132, 255), // blue
+        _ => egui::Color32::from_rgb(120, 170, 255),
+    }
+}
+
 fn main() -> eframe::Result<()> {
     let bridge = Arc::new(Bridge {
         show: AtomicBool::new(false),
@@ -315,7 +326,6 @@ impl eframe::App for ShortKeyApp {
                             .show(ui, |ui| {
                                 for (index, item) in rows.iter().enumerate() {
                                     let selected = index == self.selected;
-                                    let key_text = format!("{}{}", item.modifiers.symbols(), item.key);
                                     ui.horizontal(|ui| {
                                         ui.set_min_width(ui.available_width() / 3.0 - 30.0);
                                         let title =
@@ -336,11 +346,21 @@ impl eframe::App for ShortKeyApp {
                                             .size(11.0)
                                             .color(egui::Color32::from_gray(130)),
                                     );
-                                    ui.label(
-                                        egui::RichText::new(key_text)
-                                            .size(12.5)
-                                            .color(egui::Color32::from_rgb(120, 170, 255)),
-                                    );
+                                    // 修饰键按类别着色（与 macOS 端一致）：⌃ 绿 · ⌥ 紫 · ⇧ 橙 · ⌘ 蓝
+                                    ui.horizontal(|ui| {
+                                        for glyph in item.modifiers.symbols().chars() {
+                                            ui.label(
+                                                egui::RichText::new(glyph.to_string())
+                                                    .size(12.5)
+                                                    .color(modifier_color(glyph)),
+                                            );
+                                        }
+                                        ui.label(
+                                            egui::RichText::new(&item.key)
+                                                .size(12.5)
+                                                .color(egui::Color32::from_rgb(120, 170, 255)),
+                                        );
+                                    });
                                     ui.end_row();
                                 }
                             });

@@ -27,6 +27,8 @@ final class OverlayModel: ObservableObject {
     @Published var columnCount: Int = 4
     /// 行字号（设置可调）
     @Published var rowFontSize: Double = 13
+    /// 修饰键按类别着色（设置可调）
+    @Published var modifierColorCoding = true
 
     /// ↑↓ 导航：仅搜索态；对全部来源按标题模糊分排序，选中项随移动更新
     func navigate(_ delta: Int) {
@@ -112,6 +114,7 @@ final class OverlayController: NSObject, NSWindowDelegate {
         model.update(appName: appName, icon: icon, items: items, state: store.state(for: bundleID))
         model.columnCount = Int(SettingsStore.shared.columnCount)
         model.rowFontSize = SettingsStore.shared.rowFontSize
+        model.modifierColorCoding = SettingsStore.shared.modifierColorCoding
         panel.setContentSize(overlaySize())
         if SettingsStore.shared.overlayPosition == .cursor {
             panel.moveToCursor()

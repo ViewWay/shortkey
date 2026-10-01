@@ -22,6 +22,17 @@ final class ShortcutModelTests: XCTestCase {
         XCTAssertEqual(ShortcutModifiers.fromAXModifiers(0).symbols, "⌘")
     }
 
+    func testOrderedSymbolsForColorCoding() {
+        // UI 逐类别着色依赖的顺序符号（⌃ ⌥ ⇧ ⌘）
+        XCTAssertEqual(
+            ShortcutModifiers.fromAXModifiers(1 | 2 | 4).orderedSymbols,
+            ["⌃", "⌥", "⇧", "⌘"]
+        )
+        let shiftCommand: ShortcutModifiers = [.shift, .command]
+        XCTAssertEqual(shiftCommand.orderedSymbols, ["⇧", "⌘"])
+        XCTAssertEqual(ShortcutModifiers().orderedSymbols, [])
+    }
+
     func testItemIDIsStable() {
         let a = ShortcutItem(
             title: "新建标签页", key: "T",

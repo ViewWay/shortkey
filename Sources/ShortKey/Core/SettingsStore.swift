@@ -98,6 +98,11 @@ final class SettingsStore: ObservableObject {
         didSet { UserDefaults.standard.set(rowFontSize, forKey: "rowFontSize") }
     }
 
+    /// 修饰键按类别着色（⌃ 绿 · ⌥ 紫 · ⇧ 橙 · ⌘ 蓝）
+    @Published var modifierColorCoding: Bool {
+        didSet { UserDefaults.standard.set(modifierColorCoding, forKey: "modifierColorCoding") }
+    }
+
     private init() {
         let defaults = UserDefaults.standard
         triggerKind = TriggerKind(rawValue: defaults.string(forKey: "triggerKind") ?? "") ?? .hold
@@ -107,6 +112,7 @@ final class SettingsStore: ObservableObject {
         triggerKey = TriggerKey(rawValue: defaults.string(forKey: "triggerKey") ?? "") ?? .command
         columnCount = defaults.object(forKey: "columnCount") as? Double ?? 4
         rowFontSize = defaults.object(forKey: "rowFontSize") as? Double ?? 13
+        modifierColorCoding = defaults.object(forKey: "modifierColorCoding") as? Bool ?? true
         applyAppearance()
     }
 

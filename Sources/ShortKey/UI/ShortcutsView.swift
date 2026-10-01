@@ -160,7 +160,8 @@ struct ShortcutsView: View {
                         onToggleHidden: { onToggleHidden(row.item.id) },
                         onExecute: { onExecuteItem(row.item) },
                         isSelected: model.selectedItemId == row.item.id,
-                        fontSize: model.rowFontSize
+                        fontSize: model.rowFontSize,
+                        modifierColorCoding: model.modifierColorCoding
                     )
                 }
             }

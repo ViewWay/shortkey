@@ -1,7 +1,7 @@
 import SwiftUI
 import ShortKeyCore
 
-/// 单行：悬停操作（收藏/隐藏）+ 标题（搜索高亮）+ KeyCue 式蓝色键名
+/// 单行：悬停操作（收藏/隐藏）+ 标题（搜索高亮）+ 键名（修饰键按类别着色，可在设置关闭）
 struct ShortcutRow: View {
     let item: ShortcutItem
     let isFavorite: Bool
@@ -14,6 +14,8 @@ struct ShortcutRow: View {
     var isSelected: Bool = false
     /// 行字号（设置可调）
     var fontSize: Double = 13
+    /// 修饰键按类别着色（设置可调）
+    var modifierColorCoding: Bool = true
 
     @State private var isHovering = false
 
@@ -35,9 +37,7 @@ struct ShortcutRow: View {
 
             Spacer(minLength: 10)
 
-            Text(item.modifiers.symbols + item.key)
-                .font(.system(size: fontSize - 0.5, weight: .medium, design: .rounded))
-                .foregroundStyle(Color.accentColor)
+            keyCombo
                 .lineLimit(1)
                 .opacity(item.isEnabled && !isHidden ? 1 : 0.5)
         }
@@ -58,6 +58,46 @@ struct ShortcutRow: View {
         .contentShape(Rectangle())
         .onTapGesture { onExecute() }
         .onHover { isHovering = $0 }
+    }
+
+    /// 键组合：修饰键按类别着色（⌃ 绿 · ⌥ 紫 · ⇧ 橙 · ⌘ 蓝），主键保持强调色
+    private var keyCombo: some View {
+        Group {
+            if modifierColorCoding {
+                HStack(spacing: 3) {
+                    ForEach(item.modifiers.orderedSymbols, id: \.self) { symbol in
+                        Text(symbol)
+                            .font(.system(size: fontSize - 2, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Self.modifierColor(symbol))
+                            .padding(.horizontal, 3)
+                            .padding(.vertical, 0.5)
+                            .background(
+                                Capsule(style: .continuous)
+                                    .fill(Self.modifierColor(symbol).opacity(0.16))
+                            )
+                    }
+                    Text(item.key)
+                        .font(.system(size: fontSize - 0.5, weight: .medium, design: .rounded))
+                        .foregroundStyle(Color.accentColor)
+                }
+            } else {
+                Text(item.modifiers.symbols + item.key)
+                    .font(.system(size: fontSize - 0.5, weight: .medium, design: .rounded))
+                    .foregroundStyle(Color.accentColor)
+            }
+        }
+        .fixedSize()
+    }
+
+    /// 修饰键类别色（系统自适应色，深浅色模式下均可辨）
+    private static func modifierColor(_ symbol: String) -> Color {
+        switch symbol {
+        case "⌃": return .green
+        case "⌥": return .purple
+        case "⇧": return .orange
+        case "⌘": return .blue
+        default: return .accentColor
+        }
     }
 
     private var starButton: some View {
